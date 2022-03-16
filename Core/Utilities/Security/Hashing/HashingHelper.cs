@@ -1,26 +1,28 @@
-﻿using System.Text;
+﻿#nullable enable
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Core.Utilities.Security.Hashing
 {
     public class HashingHelper
     {
-        public static void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
+        public static void CreateHash(string inputText, out byte[] outputHash, out byte[] outputSalt)
         {
-            using (var hmac = new System.Security.Cryptography.HMACSHA512())
+            using (var hmac = GetHmacInstance(null))
             {
-                passwordSalt = hmac.Key;
-                passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+                outputSalt = hmac.Key;
+                outputHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(inputText));
             }
         }
 
-        public static bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt)
+        public static bool VerifyHash(string inputText, byte[] currentHash, byte[] salt)
         {
-            using (var hmac = new System.Security.Cryptography.HMACSHA512(passwordSalt))
+            using (var hmac = GetHmacInstance(salt))
             {
-                var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+                var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(inputText));
                 for (int i = 0; i < computedHash.Length; i++)
                 {
-                    if (computedHash[i] != passwordHash[i])
+                    if (computedHash[i] != currentHash[i])
                     {
                         return false;
                     }
@@ -28,6 +30,15 @@ namespace Core.Utilities.Security.Hashing
             }
 
             return true;
+        }
+
+        // Private Methods
+
+        private static HMAC GetHmacInstance(byte[]? salt)
+        {
+            return salt == null
+                ? new HMACSHA512()
+                : new HMACSHA512(salt);
         }
     }
 }
